@@ -36,7 +36,7 @@ jobs:
           # Using jq to safely escape the description for JSON
           ESCAPED_DESC=$(echo "$DESCRIPTION" | jq -Rs '.')
 
-          PROMPT="Create a 3x3 grid image showing 9 squares numbered 1-9 (starting top-left, going left to right, top to bottom). Theme: ${DESCRIPTION}. Square 1 shows a very happy, cheerful rubber duck in great spirits. Each subsequent square shows the duck progressively becoming sadder and more deflated. Square 9 shows a completely sad, deflated rubber duck. This is a rubber duck mood scale for rating emotional state from 1 (happiest) to 9 (saddest). Each square should be clearly numbered."
+          PROMPT="Create a 3x3 grid image showing 9 squares numbered 1-9 (starting top-left, going left to right, top to bottom). The subject is: ${DESCRIPTION}. Square 1 shows the subject looking very happy, cheerful, and in great spirits. Each subsequent square shows the subject progressively becoming sadder and more deflated. Square 9 shows the subject completely sad and deflated. This is a mood scale for rating emotional state from 1 (happiest) to 9 (saddest). Each square should be clearly numbered. Make it fun and expressive."
 
           echo "Generating image with description: $DESCRIPTION"
 
