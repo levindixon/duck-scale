@@ -1,17 +1,17 @@
 name: Generate Duck Scale Image
 
-on:
-  workflow_dispatch:
-    inputs:
-      description:
-        description: 'Duck scale theme/description'
-        required: true
-        type: string
-      user:
-        description: 'User who requested the duck scale'
-        required: false
-        default: 'unknown'
-        type: string
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       description:
+#         description: 'Duck scale theme/description'
+#         required: true
+#         type: string
+#       user:
+#         description: 'User who requested the duck scale'
+#         required: false
+#         default: 'unknown'
+#         type: string
 
 jobs:
   generate-duck-scale:
