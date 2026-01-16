@@ -1,0 +1,152 @@
+name: Generate Duck Scale Image
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  generate-duck-scale:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract Duck Scale Description
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            const match = body.match(/Duck Scale Description:\s*\n?([\s\S]*?)$/i);
+            const description = match ? match[1].trim() : 'a rubber duck mood scale';
+            console.log('Extracted description:', description);
+            core.setOutput('description', description);
+
+            // Extract channel for Slack webhook
+            const channelMatch = body.match(/Channel:\s*#?([\w-]+)/i);
+            const channel = channelMatch ? channelMatch[1] : 'duck-scale';
+            core.setOutput('channel', channel);
+
+            // Extract user
+            const userMatch = body.match(/User:\s*@?([\w.-]+)/i);
+            const user = userMatch ? userMatch[1] : 'unknown';
+            core.setOutput('user', user);
+
+      - name: Generate Image with OpenAI
+        id: generate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DESCRIPTION: ${{ steps.extract.outputs.description }}
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          FILENAME="duck-scale-${TIMESTAMP}.png"
+
+          # Create the prompt for duck scale image generation
+          # Using jq to safely escape the description for JSON
+          ESCAPED_DESC=$(echo "$DESCRIPTION" | jq -Rs '.')
+
+          PROMPT="Create a 3x3 grid image showing 9 squares numbered 1-9 (starting top-left, going left to right, top to bottom). Theme: ${DESCRIPTION}. Square 1 shows a very happy, cheerful rubber duck in great spirits. Each subsequent square shows the duck progressively becoming sadder and more deflated. Square 9 shows a completely sad, deflated rubber duck. This is a rubber duck mood scale for rating emotional state from 1 (happiest) to 9 (saddest). Each square should be clearly numbered."
+
+          echo "Generating image with description: $DESCRIPTION"
+
+          # Build JSON payload safely using jq
+          JSON_PAYLOAD=$(jq -n \
+            --arg model "gpt-image-1" \
+            --arg prompt "$PROMPT" \
+            --arg size "1024x1024" \
+            '{model: $model, prompt: $prompt, size: $size}')
+
+          # Call OpenAI Image API
+          RESPONSE=$(curl -s -X POST "https://api.openai.com/v1/images/generations" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD")
+
+          echo "API Response received"
+
+          # Check for errors
+          ERROR=$(echo "$RESPONSE" | jq -r '.error.message // empty')
+          if [ -n "$ERROR" ]; then
+            echo "Error from OpenAI API: $ERROR"
+            echo "Full response: $RESPONSE"
+            exit 1
+          fi
+
+          # Extract base64 image data
+          IMAGE_B64=$(echo "$RESPONSE" | jq -r '.data[0].b64_json // empty')
+
+          if [ -n "$IMAGE_B64" ] && [ "$IMAGE_B64" != "null" ]; then
+            echo "$IMAGE_B64" | base64 -d > "duck-scales/$FILENAME"
+          else
+            echo "No image data found in response"
+            echo "Full response: $RESPONSE"
+            exit 1
+          fi
+
+          echo "Image saved to duck-scales/$FILENAME"
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+
+      - name: Commit and Push Image
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add duck-scales/
+          git commit -m "Add duck scale image: ${{ steps.generate.outputs.filename }}
+
+          Generated for issue #${{ github.event.issue.number }}
+          Description: ${{ steps.extract.outputs.description }}"
+          git push
+
+      - name: Get Image URL
+        id: image_url
+        run: |
+          FILENAME="${{ steps.generate.outputs.filename }}"
+          IMAGE_URL="https://raw.githubusercontent.com/${{ github.repository }}/main/duck-scales/${FILENAME}"
+          echo "url=$IMAGE_URL" >> $GITHUB_OUTPUT
+          echo "Image URL: $IMAGE_URL"
+
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          IMAGE_URL: ${{ steps.image_url.outputs.url }}
+          DESCRIPTION: ${{ steps.extract.outputs.description }}
+          USER: ${{ steps.extract.outputs.user }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          # Build Slack message text
+          MESSAGE_TEXT="*New Duck Scale Generated!*\n\nRequested by: @${USER}\nTheme: ${DESCRIPTION}\n\n<${IMAGE_URL}|View Duck Scale Image>\n<${ISSUE_URL}|View GitHub Issue #${ISSUE_NUMBER}>"
+
+          # Build JSON payload safely using jq
+          SLACK_PAYLOAD=$(jq -n \
+            --arg text "New Duck Scale Generated!" \
+            --arg message "$MESSAGE_TEXT" \
+            --arg image_url "$IMAGE_URL" \
+            --arg alt_text "Duck Scale: $DESCRIPTION" \
+            '{
+              text: $text,
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: $message
+                  }
+                },
+                {
+                  type: "image",
+                  image_url: $image_url,
+                  alt_text: $alt_text
+                }
+              ]
+            }')
+
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$SLACK_PAYLOAD"
+
+          echo "Slack notification sent"
