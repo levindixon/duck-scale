@@ -95,9 +95,15 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           IMAGE_URL: ${{ steps.image_url.outputs.url }}
+          USER: ${{ inputs.user }}
+          DESCRIPTION: ${{ inputs.description }}
         run: |
           # Build JSON payload for Slack workflow webhook
-          SLACK_PAYLOAD=$(jq -n --arg url "$IMAGE_URL" '{duck_scale_url: $url}')
+          SLACK_PAYLOAD=$(jq -n \
+            --arg url "$IMAGE_URL" \
+            --arg user "$USER" \
+            --arg desc "$DESCRIPTION" \
+            '{duck_scale_url: $url, requested_by_user: $user, duck_scale_description: $desc}')
 
           curl -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
