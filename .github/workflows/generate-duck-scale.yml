@@ -23,11 +23,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Clean up description
+        id: cleanup
+        env:
+          RAW_DESCRIPTION: ${{ inputs.description }}
+        run: |
+          # Strip common prefixes like "duck scale it:", "duck scale a", "duck scale"
+          CLEAN=$(echo "$RAW_DESCRIPTION" | sed -E 's/^duck scale (it:?|a|an|the|me)?\s*//i' | xargs)
+          echo "Cleaned description: $CLEAN"
+          echo "description=$CLEAN" >> $GITHUB_OUTPUT
+
       - name: Edit Image with OpenAI
         id: generate
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DESCRIPTION: ${{ inputs.description }}
+          DESCRIPTION: ${{ steps.cleanup.outputs.description }}
         run: |
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           FILENAME="duck-scale-${TIMESTAMP}.png"
@@ -95,7 +105,7 @@ jobs:
 
       - name: Commit and Push Image
         env:
-          DESCRIPTION: ${{ inputs.description }}
+          DESCRIPTION: ${{ steps.cleanup.outputs.description }}
           USER: ${{ inputs.user }}
         run: |
           git config user.name "github-actions[bot]"
@@ -120,7 +130,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           IMAGE_URL: ${{ steps.image_url.outputs.url }}
           USER: ${{ inputs.user }}
-          DESCRIPTION: ${{ inputs.description }}
+          DESCRIPTION: ${{ steps.cleanup.outputs.description }}
         run: |
           # Build JSON payload for Slack workflow webhook
           SLACK_PAYLOAD=$(jq -n \
