@@ -1,46 +1,33 @@
 name: Generate Duck Scale Image
 
 on:
-  issues:
-    types: [opened]
+  workflow_dispatch:
+    inputs:
+      description:
+        description: 'Duck scale theme/description'
+        required: true
+        type: string
+      user:
+        description: 'User who requested the duck scale'
+        required: false
+        default: 'unknown'
+        type: string
 
 jobs:
   generate-duck-scale:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Duck Scale Description
-        id: extract
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = context.payload.issue.body || '';
-            const match = body.match(/Duck Scale Description:\s*\n?([\s\S]*?)$/i);
-            const description = match ? match[1].trim() : 'a rubber duck mood scale';
-            console.log('Extracted description:', description);
-            core.setOutput('description', description);
-
-            // Extract channel for Slack webhook
-            const channelMatch = body.match(/Channel:\s*#?([\w-]+)/i);
-            const channel = channelMatch ? channelMatch[1] : 'duck-scale';
-            core.setOutput('channel', channel);
-
-            // Extract user
-            const userMatch = body.match(/User:\s*@?([\w.-]+)/i);
-            const user = userMatch ? userMatch[1] : 'unknown';
-            core.setOutput('user', user);
-
       - name: Generate Image with OpenAI
         id: generate
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DESCRIPTION: ${{ steps.extract.outputs.description }}
+          DESCRIPTION: ${{ inputs.description }}
         run: |
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           FILENAME="duck-scale-${TIMESTAMP}.png"
@@ -91,14 +78,17 @@ jobs:
           echo "filename=$FILENAME" >> $GITHUB_OUTPUT
 
       - name: Commit and Push Image
+        env:
+          DESCRIPTION: ${{ inputs.description }}
+          USER: ${{ inputs.user }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add duck-scales/
           git commit -m "Add duck scale image: ${{ steps.generate.outputs.filename }}
 
-          Generated for issue #${{ github.event.issue.number }}
-          Description: ${{ steps.extract.outputs.description }}"
+          Requested by: ${USER}
+          Description: ${DESCRIPTION}"
           git push
 
       - name: Get Image URL
