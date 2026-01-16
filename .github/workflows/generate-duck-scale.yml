@@ -38,9 +38,13 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DESCRIPTION: ${{ steps.cleanup.outputs.description }}
+          USER: ${{ inputs.user }}
         run: |
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          FILENAME="duck-scale-${TIMESTAMP}.png"
+          # Sanitize description and user for filename (lowercase, replace spaces/special chars with dashes)
+          SAFE_DESC=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | cut -c1-30)
+          SAFE_USER=$(echo "$USER" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+          FILENAME="${SAFE_DESC}-${SAFE_USER}-${TIMESTAMP}.png"
 
           # Create the optimized prompt for editing the duck scale image
           PROMPT="You are editing the provided image, which is a 3×3 photo collage with panels numbered 1–9.
