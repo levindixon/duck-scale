@@ -113,40 +113,12 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           IMAGE_URL: ${{ steps.image_url.outputs.url }}
-          DESCRIPTION: ${{ steps.extract.outputs.description }}
-          USER: ${{ steps.extract.outputs.user }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
         run: |
-          # Build Slack message text
-          MESSAGE_TEXT="*New Duck Scale Generated!*\n\nRequested by: @${USER}\nTheme: ${DESCRIPTION}\n\n<${IMAGE_URL}|View Duck Scale Image>\n<${ISSUE_URL}|View GitHub Issue #${ISSUE_NUMBER}>"
-
-          # Build JSON payload safely using jq
-          SLACK_PAYLOAD=$(jq -n \
-            --arg text "New Duck Scale Generated!" \
-            --arg message "$MESSAGE_TEXT" \
-            --arg image_url "$IMAGE_URL" \
-            --arg alt_text "Duck Scale: $DESCRIPTION" \
-            '{
-              text: $text,
-              blocks: [
-                {
-                  type: "section",
-                  text: {
-                    type: "mrkdwn",
-                    text: $message
-                  }
-                },
-                {
-                  type: "image",
-                  image_url: $image_url,
-                  alt_text: $alt_text
-                }
-              ]
-            }')
+          # Build JSON payload for Slack workflow webhook
+          SLACK_PAYLOAD=$(jq -n --arg url "$IMAGE_URL" '{duck_scale_url: $url}')
 
           curl -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d "$SLACK_PAYLOAD"
 
-          echo "Slack notification sent"
+          echo "Slack workflow webhook called with: $SLACK_PAYLOAD"
