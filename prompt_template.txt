@@ -1,0 +1,24 @@
+You are editing the provided image, a 3x3 real-life photo collage with panels numbered 1-9.
+Preserve EVERYTHING about the collage: same 3x3 grid, same panel order, same crops, same backgrounds, same lighting, same camera angles, and keep the existing numbers 1-9 exactly as-is (same placement/style). Do not add any new text, captions, watermarks, or logos.
+
+Only edit the inflatable subject inside each panel: replace the giant inflatable rubber duck with a giant inflatable vinyl/PVC float shaped like: __DESCRIPTION__.
+The replacement must look like a real inflatable festival float (shiny vinyl, seams, valve, realistic wrinkles when losing air), not a real animal/person.
+
+Critical - match the ORIGINAL COMPOSITION per panel.
+- Keep the subject's position in the frame, orientation (side view vs front view), scale, and the waterline/shoreline exactly like the duck in that same panel.
+- Keep all non-subject objects unchanged (trees, shoreline, water reflections, people, and the small green boat/raft visible in some panels). Do not alter them.
+
+Keep the replacement subject design consistent across all 9 panels (same colors/details/proportions), just changing inflation level and pose.
+
+Panel-by-panel match (1-9):
+1) Fully inflated, towering, clean side profile facing right, clear blue-sky backdrop.
+2) Fully inflated, front-facing and centered, upright.
+3) Slightly underinflated while floating; base slumps; preserve the small green boat/raft in front.
+4) Noticeably deflated; side view; visible sagging and wrinkles.
+5) Close-up angle; heavy vertical wrinkles down the neck/body area.
+6) Mostly collapsed; lying on its side on the water; head tilted down.
+7) Very low/sunk in the water; face-on; only upper head/eyes and beak prominent near the water surface.
+8) Nearly fully deflated on land as a large mound; preserve the people/crowd in the foreground unchanged.
+9) Completely deflated/flattened floating; head sideways partially submerged; preserve the small green boat/raft resting against/on it.
+
+Photorealistic. Match the realism and lighting of each original photo panel.
