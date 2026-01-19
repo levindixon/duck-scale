@@ -33,14 +33,34 @@ jobs:
           CLEAN=$(echo "$RAW_DESCRIPTION" | sed -E 's/^duck scale (it:?|a|an|the|me)?\s*//i' | xargs)
           echo "Cleaned input: $CLEAN"
 
-          # Check if input is an image URL
-          if echo "$CLEAN" | grep -qiE '^https?://.*\.(jpg|jpeg|png|gif|webp)'; then
-            echo "Detected image URL"
-            echo "is_image_url=true" >> $GITHUB_OUTPUT
+          # Check if input looks like a URL - if so, try to download and verify it's an image
+          IS_IMAGE="false"
+          if echo "$CLEAN" | grep -qiE '^https?://'; then
+            echo "Detected URL, attempting to download..."
 
-            # Download the reference image
-            curl -sS -L -o reference_image.png "$CLEAN"
-            echo "Downloaded reference image"
+            # Download the file
+            if curl -sS -L -f -o reference_image_download "$CLEAN"; then
+              echo "Download successful, checking file type..."
+
+              # Check if it's actually an image using file command
+              FILE_TYPE=$(file -b --mime-type reference_image_download)
+              echo "File type: $FILE_TYPE"
+
+              if echo "$FILE_TYPE" | grep -q '^image/'; then
+                echo "Confirmed: file is an image"
+                mv reference_image_download reference_image.png
+                IS_IMAGE="true"
+              else
+                echo "File is not an image, treating input as text description"
+                rm -f reference_image_download
+              fi
+            else
+              echo "Download failed, treating input as text description"
+            fi
+          fi
+
+          if [ "$IS_IMAGE" = "true" ]; then
+            echo "is_image_url=true" >> $GITHUB_OUTPUT
 
             # Use vision API to get a description of the image
             VISION_RESPONSE=$(curl -sS -X POST "https://api.openai.com/v1/chat/completions" \
